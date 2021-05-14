@@ -1,0 +1,55 @@
+THIS_MAKEFILE	:= $(lastword $(MAKEFILE_LIST))
+OUT_DOCKERFILE	=docker-badssl/Dockerfile
+IMAGE_NAME	?= badssl.com
+
+# store original TEST_DOMAIN before include (workaround for hardcoded TEST_DOMAIN)
+ifdef TEST_DOMAIN
+_TEST_DOMAIN = $(shell echo $$TEST_DOMAIN)
+endif
+include Makefile
+ifdef _TEST_DOMAIN
+export TEST_DOMAIN = $(_TEST_DOMAIN)
+endif
+
+# sed expression to generate fully dockernized version of Dockerfile
+define DOCKERFILE_GENERATOR
+/RUN apt/,/RUN .*jekyll/ {
+    s/^RUN apt-get install -y /    /;
+    s/apt-get install -y/& --no-install-recommends/;
+    /apt-transport-https/{s/$$/ \\/; t;}
+    /git/{d; t;}
+    s/^/    /;
+    s/gem update --system$$/& 2.7.11/;
+    s/[^\\]$$/&; \\/;
+    s/RUN //;
+    /gem install jekyll/ {
+	a \ \ \ \ ln -sf /dev/stderr /var/log/nginx/error.log; \\
+        a \ \ \ \ ln -sf /dev/stdout /var/log/nginx/access.log; \\
+        a \ \ \ \ rm -rf /var/lib/apt/lists/*
+    };
+};
+t;
+/RUN make inside-docker.*/d;
+/^CMD/ {
+    s/^/ENTRYPOINT ["make","-f","$(THIS_MAKEFILE)"]\n/;
+    s/nginx.*/["certs-then-serve"]/;
+}
+endef
+export DOCKERFILE_GENERATOR
+
+.DEFAULT_GOAL = $(OUT_DOCKERFILE)
+$(OUT_DOCKERFILE):
+	@sed -e "$$DOCKERFILE_GENERATOR" Dockerfile > "$(OUT_DOCKERFILE)"
+
+# workaround for hardcoded badssl.test in original "list-hosts" target
+list-hosts:
+	@make -s list-hosts | sed -e 's/badssl\.test/$(TEST_DOMAIN)/g'
+
+.PHONY: certs-then-serve
+certs-then-serve: clean certs-test inside-docker list-hosts
+	@nginx -g "daemon off;"
+
+.PHONY: badssl.test-docker-image
+badssl.test-docker-image: $(OUT_DOCKERFILE)
+	docker build -t $(IMAGE_NAME) -f $(OUT_DOCKERFILE) .
+
