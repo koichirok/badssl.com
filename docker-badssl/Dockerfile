@@ -23,5 +23,4 @@ ADD . badssl.com
 WORKDIR badssl.com
 
 # Start things up!
-ENTRYPOINT ["make","-f","Makefile.docker-badssl"]
-CMD ["certs-then-serve"]
+CMD ["make", "certs-then-serve"]

@@ -1,4 +1,3 @@
-THIS_MAKEFILE	:= $(lastword $(MAKEFILE_LIST))
 OUT_DOCKERFILE	=docker-badssl/Dockerfile
 IMAGE_NAME	?= badssl.com
 DOCKER_COMPOSE_INDENT_WIDTH ?= 2
@@ -33,8 +32,7 @@ define DOCKERFILE_GENERATOR
 t;
 /RUN make inside-docker.*/d;
 /^CMD/ {
-    s/^/ENTRYPOINT ["make","-f","$(THIS_MAKEFILE)"]\n/;
-    s/nginx.*/["certs-then-serve"]/;
+    s/nginx.*/["make", "certs-then-serve"]/;
 }
 endef
 export DOCKERFILE_GENERATOR
@@ -75,7 +73,7 @@ list-as-compose-network-aliases:
 		echo "$$(indent 2)networks:";\
 		echo "$$(indent 3)$(DOCKER_COMPOSE_NETWORK_NAME):";\
 		echo "$$(indent 4)aliases:";\
-		make -s -f $(THIS_MAKEFILE) list-hosts 2>/dev/null \
+		make -s list-hosts 2>/dev/null \
 			| sed -e "s/^/$$(indent 5)/" -e "s/127.0.0.1/-/" -e "/####/s/hosts/aliases/"
 
 .PHONY: badssl.test-docker-image
