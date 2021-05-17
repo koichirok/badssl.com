@@ -1,6 +1,8 @@
 THIS_MAKEFILE	:= $(lastword $(MAKEFILE_LIST))
 OUT_DOCKERFILE	=docker-badssl/Dockerfile
 IMAGE_NAME	?= badssl.com
+DOCKER_COMPOSE_INDENT_WIDTH ?= 2
+DOCKER_COMPOSE_NETWORK_NAME ?= default
 
 # store original TEST_DOMAIN before include (workaround for hardcoded TEST_DOMAIN)
 ifdef TEST_DOMAIN
@@ -46,8 +48,31 @@ list-hosts:
 	@make -s list-hosts | sed -e 's/badssl\.test/$(TEST_DOMAIN)/g'
 
 .PHONY: certs-then-serve
-certs-then-serve: clean certs-test inside-docker list-hosts
+certs-then-serve: clean certs-test inside-docker
+	@printf "=%.0s" $$(seq 80); echo
+	@echo 'You can list all $(TEST_DOMAIN) hosts in /etc/hosts format by:'
+	@echo
+	@echo '  docker exec YOUR_CONTAINER list-hosts'
+	@echo
+	@echo "You can also list all $(TEST_DOMAIN) hosts as docker-compose's network aliases by:"
+	@echo
+	@echo '  docker exec YOUR_CONTAINER list-as-compose-network-aliases'
+	@printf "=%.0s" $$(seq 80); echo
 	@nginx -g "daemon off;"
+
+.PHONY: list-as-compose-network-aliases
+list-as-compose-network-aliases:
+	@\
+		indent() {\
+			printf \
+				"$$(printf ' %.0s' $$(seq $(DOCKER_COMPOSE_INDENT_WIDTH)))%.0s" \
+				$$(seq $${1-1});\
+		};\
+		echo "$$(indent 2)networks:";\
+		echo "$$(indent 3)$(DOCKER_COMPOSE_NETWORK_NAME):";\
+		echo "$$(indent 4)aliases:";\
+		make -s -f $(THIS_MAKEFILE) list-hosts 2>/dev/null \
+			| sed -e "s/^/$$(indent 5)/" -e "s/127.0.0.1/-/" -e "/####/s/hosts/aliases/"
 
 .PHONY: badssl.test-docker-image
 badssl.test-docker-image: $(OUT_DOCKERFILE)
