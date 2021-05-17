@@ -34,7 +34,7 @@ docker exec badssl make list-as-compose-network-aliases
 
 If CERTS_DIR environment variables is specified, this image copies current certificates to CERTS_DIR.
 
-So you can share generated certificates with ogher contianers like below:
+So you can share generated certificates with other contianers like below:
 
 ```
 # run image with CERTS_DIR environment variable
