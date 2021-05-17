@@ -49,6 +49,10 @@ list-hosts:
 
 .PHONY: certs-then-serve
 certs-then-serve: clean certs-test inside-docker
+	@if [ -d "$$CERTS_DIR" ]; then \
+		rm -rf "$$CERTS_DIR"/*; \
+		cd certs/sets/current && cp -R . "$$CERTS_DIR"/; \
+	fi
 	@printf "=%.0s" $$(seq 80); echo
 	@echo 'You can list all $(TEST_DOMAIN) hosts in /etc/hosts format by:'
 	@echo
