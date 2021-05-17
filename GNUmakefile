@@ -45,7 +45,7 @@ $(OUT_DOCKERFILE):
 
 # workaround for hardcoded badssl.test in original "list-hosts" target
 list-hosts:
-	@make -s list-hosts | sed -e 's/badssl\.test/$(TEST_DOMAIN)/g'
+	@make -s -f Makefile list-hosts | sed -e 's/badssl\.test/$(TEST_DOMAIN)/g'
 
 .PHONY: certs-then-serve
 certs-then-serve: clean certs-test inside-docker
@@ -56,11 +56,11 @@ certs-then-serve: clean certs-test inside-docker
 	@printf "=%.0s" $$(seq 80); echo
 	@echo 'You can list all $(TEST_DOMAIN) hosts in /etc/hosts format by:'
 	@echo
-	@echo '  docker exec YOUR_CONTAINER list-hosts'
+	@echo '  docker exec YOUR_CONTAINER make list-hosts'
 	@echo
 	@echo "You can also list all $(TEST_DOMAIN) hosts as docker-compose's network aliases by:"
 	@echo
-	@echo '  docker exec YOUR_CONTAINER list-as-compose-network-aliases'
+	@echo '  docker exec YOUR_CONTAINER make list-as-compose-network-aliases'
 	@printf "=%.0s" $$(seq 80); echo
 	@nginx -g "daemon off;"
 
